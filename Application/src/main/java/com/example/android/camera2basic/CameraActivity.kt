@@ -47,7 +47,7 @@ class CameraActivity : Activity() {
     val PATH_DIRECTORY = Environment.getExternalStorageDirectory().absolutePath + "/cfaker/"
     val FILE_NAME_UI = "ui.png"
 
-    val ad = AnimationDrawable()
+    var ad: AnimationDrawable? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -71,7 +71,7 @@ class CameraActivity : Activity() {
         }
 
         uiLayer.setOnClickListener {
-            loadPicturesAndAnimate()
+            onUiLayerClicked()
         }
 
         displayUi()
@@ -113,18 +113,29 @@ class CameraActivity : Activity() {
         dialog.show()
     }
 
-    private fun loadPicturesAndAnimate() {
-        val dirName = getSavedDirectory()
-        val dir = File(PATH_DIRECTORY + dirName)
-        if (!dir.exists()) {
-            Toast.makeText(this, "Директории с названием $dirName не существует, проверьте правильность ввода данных.", Toast.LENGTH_SHORT).show()
-            showInputDirectoryNameDialog()
+    private fun onUiLayerClicked() {
+        if (ad?.isRunning ?: false) {
+            ad!!.stop()
+            ad = null
+            animationLayer.background = null
+            return
         } else {
-            startAnimation()
+
+            val dirName = getSavedDirectory()
+            val dir = File(PATH_DIRECTORY + dirName)
+            if (!dir.exists()) {
+                Toast.makeText(this, "Директории с названием $dirName не существует, проверьте правильность ввода данных.", Toast.LENGTH_SHORT).show()
+                showInputDirectoryNameDialog()
+            } else {
+                startAnimation()
+            }
         }
     }
 
+    @Synchronized
     private fun startAnimation() {
+        ad = AnimationDrawable()
+
         val dirPath = PATH_DIRECTORY + getSavedDirectory()
         val dir = File(dirPath)
 
@@ -137,12 +148,12 @@ class CameraActivity : Activity() {
                 .subList(0, 30)
                 .forEach {
                     val createFromPath = Drawable.createFromPath(it.absolutePath)
-                    ad.addFrame(createFromPath, FRAME_DURATION)
+                    ad!!.addFrame(createFromPath, FRAME_DURATION)
                 }
 
         animationLayer.background = ad
-        ad.isOneShot = false
-        ad.start()
+        ad!!.isOneShot = false
+        ad!!.start()
     }
 
     private fun displayUi() {
