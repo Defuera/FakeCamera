@@ -21,6 +21,7 @@ import android.app.AlertDialog
 import android.content.Context
 import android.content.SharedPreferences
 import android.os.Bundle
+import android.os.Environment
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.Toast
@@ -33,7 +34,7 @@ class CameraActivity : Activity() {
     private lateinit var animationLayer: ImageView
     private lateinit var prefs: SharedPreferences
 
-    val PATH_DIRECTORY = "/sdcard/cfaker/"
+    val PATH_DIRECTORY = Environment.getExternalStorageDirectory().absolutePath + "/cfaker/"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -68,7 +69,7 @@ class CameraActivity : Activity() {
         val savedPath = getSavedDirectory()
 
         editText.setText(savedPath)
-        editText.setSelection(savedPath.length)
+        editText.setSelection(savedPath?.length ?: 0)
 
 
         AlertDialog.Builder(this)
@@ -96,8 +97,8 @@ class CameraActivity : Activity() {
         }
     }
 
-    private fun getSavedDirectory(): String {
-        return prefs.getString("path", PATH_DIRECTORY)
+    private fun getSavedDirectory(): String? {
+        return prefs.getString("path", null)
     }
 
     private fun saveDirectory(path: String) {
