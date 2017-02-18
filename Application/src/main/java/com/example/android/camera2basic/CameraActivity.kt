@@ -24,6 +24,7 @@ import android.os.Bundle
 import android.os.Environment
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
+import android.view.View
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
@@ -71,7 +72,6 @@ class CameraActivity : Activity() {
 
         val adapter = ListItemAdapter()
 
-
         val dialog = AlertDialog.Builder(this)
                 .setTitle("Укажите путь к папке с ui.png и файлами анимации. ")
                 .setMessage("Папка должна быть помещена на внутренню память телефона по адреусу $PATH_DIRECTORY и не иметь в названии пробелов")
@@ -81,7 +81,7 @@ class CameraActivity : Activity() {
         adapter
                 .addViewCreator(
                         String::class.java,
-                        { parent -> TextView(parent.context) }
+                        { parent -> View.inflate(parent.context, R.layout.widget_item, null) as TextView }
                 )
                 .addViewBinder(TextView::setText)
                 .addOnItemViewClickListener { _, item ->
