@@ -14,9 +14,7 @@
     <ImageView
         android:id="@+id/ui_layer"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:alpha="0.7"
-        android:src="@drawable/image_ui" />
+        android:layout_height="match_parent" />
 
     <ImageView
         android:id="@+id/animation_layer"

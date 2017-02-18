@@ -28,6 +28,7 @@ import android.view.View
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
+import com.bumptech.glide.Glide
 import com.m039.el_adapter.ListItemAdapter
 import java.io.File
 
@@ -39,6 +40,7 @@ class CameraActivity : Activity() {
     private lateinit var prefs: SharedPreferences
 
     val PATH_DIRECTORY = Environment.getExternalStorageDirectory().absolutePath + "/cfaker/"
+    val FILE_NAME_UI = "ui.png"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -108,7 +110,18 @@ class CameraActivity : Activity() {
             Toast.makeText(this, "Директории с названием $dirName не существует, проверьте правильность ввода данных.", Toast.LENGTH_SHORT).show()
             showInputDirectoryNameDialog()
         } else {
-//            create
+            displayUi()
+        }
+    }
+
+    private fun displayUi() {
+        val filePath = PATH_DIRECTORY + getSavedDirectory() + File.separator + FILE_NAME_UI
+        if (File(filePath).exists()) {
+            Glide.with(this)
+                    .load(filePath)
+                    .into(uiLayer)
+        } else {
+            Toast.makeText(this, "ui.png not found in ${getSavedDirectory()}", Toast.LENGTH_SHORT).show()
         }
     }
 
