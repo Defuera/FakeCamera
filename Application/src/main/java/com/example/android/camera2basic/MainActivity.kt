@@ -20,6 +20,7 @@ import android.widget.Toast
 import com.bumptech.glide.Glide
 import com.m039.el_adapter.ListItemAdapter
 import rx.Single
+import rx.Subscription
 import rx.android.schedulers.AndroidSchedulers
 import rx.schedulers.Schedulers
 import java.io.File
@@ -32,6 +33,7 @@ class MainActivity : Activity() {
     private lateinit var prefs: SharedPreferences
 
     private var animationLoading: Boolean = false
+    private var subscription: Subscription? = null
 
     val FRAME_PER_SECOND = 24
     val FRAME_DURATION = 1000 / FRAME_PER_SECOND
@@ -120,7 +122,7 @@ class MainActivity : Activity() {
             showInputDirectoryNameDialog()
         } else {
             animationLoading = true
-            loadAnimation()
+            subscription = loadAnimation()
                     .subscribe(
                             {
                                 animationDrawable ->
@@ -140,6 +142,9 @@ class MainActivity : Activity() {
     }
 
     private fun releaseResources() {
+        subscription?.unsubscribe()
+        subscription = null
+
         val background: Drawable? = animationLayer.background
         val animationDrawable = if (background != null) background as AnimationDrawable else null
         animationDrawable?.stop()
@@ -166,16 +171,13 @@ class MainActivity : Activity() {
                     Log.i("DEnsText", it.absolutePath)
                     it.name != FILE_NAME_UI && it.extension == "png"
                 }
-//                .subList(0, 30)
                 .forEach {
                     val bm: Bitmap = Glide.with(this)
                             .load(it.absolutePath)
                             .asBitmap()
-                            .centerCrop()
                             .into(com.bumptech.glide.request.target.Target.SIZE_ORIGINAL, com.bumptech.glide.request.target.Target.SIZE_ORIGINAL)
                             .get()
 
-//                    val createFromPath = Drawable.createFromPath(it.absolutePath)
                     val bitmapDrawable = BitmapDrawable(resources, bm)
                     animationDrawable.addFrame(bitmapDrawable, FRAME_DURATION)
                 }
