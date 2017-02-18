@@ -87,8 +87,8 @@ class CameraActivity : Activity() {
 
     private fun loadPicturesAndAnimate() {
         val dirName = getSavedDirectory()
-        val dir = File(dirName)
-        if (!dir.exists()){
+        val dir = File(PATH_DIRECTORY + dirName)
+        if (!dir.exists()) {
             Toast.makeText(this, "Директории с названием $dirName не существует, проверьте правильность ввода данных.", Toast.LENGTH_SHORT).show()
             showInputDirectoryNameDialog()
         } else {
