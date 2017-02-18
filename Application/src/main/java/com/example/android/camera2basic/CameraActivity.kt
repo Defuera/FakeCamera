@@ -20,10 +20,13 @@ import android.app.Activity
 import android.app.AlertDialog
 import android.content.Context
 import android.content.SharedPreferences
+import android.graphics.drawable.AnimationDrawable
+import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.os.Environment
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
+import android.util.Log
 import android.view.View
 import android.widget.ImageView
 import android.widget.TextView
@@ -39,8 +42,12 @@ class CameraActivity : Activity() {
     private lateinit var animationLayer: ImageView
     private lateinit var prefs: SharedPreferences
 
+    val FRAME_PER_SECOND = 24
+    val FRAME_DURATION = 1000 / FRAME_PER_SECOND
     val PATH_DIRECTORY = Environment.getExternalStorageDirectory().absolutePath + "/cfaker/"
     val FILE_NAME_UI = "ui.png"
+
+    val ad = AnimationDrawable()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -113,8 +120,29 @@ class CameraActivity : Activity() {
             Toast.makeText(this, "Директории с названием $dirName не существует, проверьте правильность ввода данных.", Toast.LENGTH_SHORT).show()
             showInputDirectoryNameDialog()
         } else {
-
+            startAnimation()
         }
+    }
+
+    private fun startAnimation() {
+        val dirPath = PATH_DIRECTORY + getSavedDirectory()
+        val dir = File(dirPath)
+
+        dir
+                .listFiles()
+                .filter {
+                    Log.i("DEnsText", it.absolutePath)
+                    it.name != FILE_NAME_UI && it.extension == "png"
+                }
+                .subList(0, 30)
+                .forEach {
+                    val createFromPath = Drawable.createFromPath(it.absolutePath)
+                    ad.addFrame(createFromPath, FRAME_DURATION)
+                }
+
+        animationLayer.background = ad
+        ad.isOneShot = false
+        ad.start()
     }
 
     private fun displayUi() {
