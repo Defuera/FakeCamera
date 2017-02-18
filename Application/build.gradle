@@ -36,6 +36,10 @@ dependencies {
 
     compile 'com.github.m039:el-adapter:413722f663084c5b930cca19bbccc6e851594225'
     compile 'com.github.bumptech.glide:glide:3.7.0'
+
+    // Rx
+    compile 'io.reactivex:rxandroid:1.2.1'
+    compile "io.reactivex:rxjava:1.1.10"
 }
 repositories {
     mavenCentral()

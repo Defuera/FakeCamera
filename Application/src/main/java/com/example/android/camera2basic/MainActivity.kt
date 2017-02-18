@@ -1,26 +1,12 @@
-/*
- * Copyright 2014 The Android Open Source Project
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *       http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package com.example.android.camera2basic
 
 import android.app.Activity
 import android.app.AlertDialog
 import android.content.Context
 import android.content.SharedPreferences
+import android.graphics.Bitmap
 import android.graphics.drawable.AnimationDrawable
+import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.os.Environment
@@ -33,21 +19,24 @@ import android.widget.TextView
 import android.widget.Toast
 import com.bumptech.glide.Glide
 import com.m039.el_adapter.ListItemAdapter
+import rx.Single
+import rx.android.schedulers.AndroidSchedulers
+import rx.schedulers.Schedulers
 import java.io.File
 
 
-class CameraActivity : Activity() {
+class MainActivity : Activity() {
 
     private lateinit var uiLayer: ImageView
     private lateinit var animationLayer: ImageView
     private lateinit var prefs: SharedPreferences
 
+    private var animationLoading: Boolean = false
+
     val FRAME_PER_SECOND = 24
     val FRAME_DURATION = 1000 / FRAME_PER_SECOND
     val PATH_DIRECTORY = Environment.getExternalStorageDirectory().absolutePath + "/cfaker/"
     val FILE_NAME_UI = "ui.png"
-
-    var ad: AnimationDrawable? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -66,6 +55,7 @@ class CameraActivity : Activity() {
 
 
         uiLayer.setOnLongClickListener {
+            releaseResources()
             showInputDirectoryNameDialog()
             false
         }
@@ -109,32 +99,63 @@ class CameraActivity : Activity() {
         )
 
         recycler.adapter = adapter
-
         dialog.show()
     }
 
     private fun onUiLayerClicked() {
-        if (ad?.isRunning ?: false) {
-            ad!!.stop()
-            ad = null
-            animationLayer.background = null
+        if (animationLoading) {
+            Toast.makeText(this, "Пожалуйста подождите, анимация загружается", Toast.LENGTH_SHORT).show()
             return
-        } else {
-
-            val dirName = getSavedDirectory()
-            val dir = File(PATH_DIRECTORY + dirName)
-            if (!dir.exists()) {
-                Toast.makeText(this, "Директории с названием $dirName не существует, проверьте правильность ввода данных.", Toast.LENGTH_SHORT).show()
-                showInputDirectoryNameDialog()
-            } else {
-                startAnimation()
-            }
         }
+
+        if (animationLayer.background != null) {
+            releaseResources()
+            return
+        }
+
+        val dirName = getSavedDirectory()
+        val dir = File(PATH_DIRECTORY + dirName)
+        if (!dir.exists()) {
+            Toast.makeText(this, "Директории с названием $dirName не существует, проверьте правильность ввода данных.", Toast.LENGTH_SHORT).show()
+            showInputDirectoryNameDialog()
+        } else {
+            animationLoading = true
+            loadAnimation()
+                    .subscribe(
+                            {
+                                animationDrawable ->
+                                animationLoading = false
+                                animationLayer.background = animationDrawable
+                                animationDrawable.isOneShot = false
+                                animationDrawable.start()
+                            },
+                            {
+                                t ->
+                                animationLoading = false
+                                Toast.makeText(this, t.localizedMessage, Toast.LENGTH_SHORT).show()
+                            }
+                    )
+        }
+
+    }
+
+    private fun releaseResources() {
+        val background: Drawable? = animationLayer.background
+        val animationDrawable = if (background != null) background as AnimationDrawable else null
+        animationDrawable?.stop()
+        animationLayer.background = null
     }
 
     @Synchronized
-    private fun startAnimation() {
-        ad = AnimationDrawable()
+    private fun loadAnimation(): Single<AnimationDrawable> {
+        return Single
+                .fromCallable { createAnimationDrawableBlocking() }
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+    }
+
+    private fun createAnimationDrawableBlocking(): AnimationDrawable {
+        val animationDrawable = AnimationDrawable()
 
         val dirPath = PATH_DIRECTORY + getSavedDirectory()
         val dir = File(dirPath)
@@ -145,15 +166,21 @@ class CameraActivity : Activity() {
                     Log.i("DEnsText", it.absolutePath)
                     it.name != FILE_NAME_UI && it.extension == "png"
                 }
-                .subList(0, 30)
+//                .subList(0, 30)
                 .forEach {
-                    val createFromPath = Drawable.createFromPath(it.absolutePath)
-                    ad!!.addFrame(createFromPath, FRAME_DURATION)
+                    val bm: Bitmap = Glide.with(this)
+                            .load(it.absolutePath)
+                            .asBitmap()
+                            .centerCrop()
+                            .into(com.bumptech.glide.request.target.Target.SIZE_ORIGINAL, com.bumptech.glide.request.target.Target.SIZE_ORIGINAL)
+                            .get()
+
+//                    val createFromPath = Drawable.createFromPath(it.absolutePath)
+                    val bitmapDrawable = BitmapDrawable(resources, bm)
+                    animationDrawable.addFrame(bitmapDrawable, FRAME_DURATION)
                 }
 
-        animationLayer.background = ad
-        ad!!.isOneShot = false
-        ad!!.start()
+        return animationDrawable
     }
 
     private fun displayUi() {
@@ -176,4 +203,12 @@ class CameraActivity : Activity() {
         prefs.edit().putString("path", path).apply()
     }
 
+
+    fun screenWidth(context: Context): Int {
+        return context.resources.displayMetrics.widthPixels
+    }
+
+    fun screenHeigh(context: Context): Int {
+        return context.resources.displayMetrics.heightPixels
+    }
 }
