@@ -66,6 +66,8 @@ class CameraActivity : Activity() {
         uiLayer.setOnClickListener {
             loadPicturesAndAnimate()
         }
+
+        displayUi()
     }
 
     private fun showInputDirectoryNameDialog() {
@@ -88,6 +90,7 @@ class CameraActivity : Activity() {
                 .addViewBinder(TextView::setText)
                 .addOnItemViewClickListener { _, item ->
                     saveDirectory(item)
+                    displayUi()
                     dialog.dismiss()
                 }
 
@@ -110,7 +113,7 @@ class CameraActivity : Activity() {
             Toast.makeText(this, "Директории с названием $dirName не существует, проверьте правильность ввода данных.", Toast.LENGTH_SHORT).show()
             showInputDirectoryNameDialog()
         } else {
-            displayUi()
+
         }
     }
 
@@ -121,6 +124,7 @@ class CameraActivity : Activity() {
                     .load(filePath)
                     .into(uiLayer)
         } else {
+            uiLayer.setImageDrawable(null)
             Toast.makeText(this, "ui.png not found in ${getSavedDirectory()}", Toast.LENGTH_SHORT).show()
         }
     }
