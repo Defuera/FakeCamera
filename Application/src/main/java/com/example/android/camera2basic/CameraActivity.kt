@@ -22,9 +22,12 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.os.Bundle
 import android.os.Environment
-import android.widget.EditText
+import android.support.v7.widget.LinearLayoutManager
+import android.support.v7.widget.RecyclerView
 import android.widget.ImageView
+import android.widget.TextView
 import android.widget.Toast
+import com.m039.el_adapter.ListItemAdapter
 import java.io.File
 
 
@@ -63,27 +66,39 @@ class CameraActivity : Activity() {
     }
 
     private fun showInputDirectoryNameDialog() {
-        val editText = EditText(this)
-        val padding = resources.getDimensionPixelOffset(R.dimen.padding_16)
-        editText.setPadding(padding, padding, padding, padding)
-        val savedPath = getSavedDirectory()
+        val recycler = RecyclerView(this)
+        recycler.layoutManager = LinearLayoutManager(this)
 
-        editText.setText(savedPath)
-        editText.setSelection(savedPath?.length ?: 0)
+        val adapter = ListItemAdapter()
 
 
-        AlertDialog.Builder(this)
+        val dialog = AlertDialog.Builder(this)
                 .setTitle("Укажите путь к папке с ui.png и файлами анимации. ")
                 .setMessage("Папка должна быть помещена на внутренню память телефона по адреусу $PATH_DIRECTORY и не иметь в названии пробелов")
-                .setView(editText)
-                .setPositiveButton(
-                        "OK",
-                        { dialogInterface, i ->
-                            dialogInterface.dismiss()
-                            saveDirectory(editText.text.toString())
-                        }
+                .setView(recycler)
+                .create()
+
+        adapter
+                .addViewCreator(
+                        String::class.java,
+                        { parent -> TextView(parent.context) }
                 )
-                .show()
+                .addViewBinder(TextView::setText)
+                .addOnItemViewClickListener { _, item ->
+                    saveDirectory(item)
+                    dialog.dismiss()
+                }
+
+        adapter.addItems(
+                File(PATH_DIRECTORY)
+                        .listFiles()
+                        .filter { it.isDirectory }
+                        .map { it.name }
+        )
+
+        recycler.adapter = adapter
+
+        dialog.show()
     }
 
     private fun loadPicturesAndAnimate() {
