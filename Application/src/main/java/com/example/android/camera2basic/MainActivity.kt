@@ -1,5 +1,6 @@
 package com.example.android.camera2basic
 
+import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
@@ -10,6 +11,7 @@ import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
 import android.util.Log
+import android.widget.EditText
 import android.widget.ImageView
 import android.widget.Toast
 import com.bumptech.glide.Glide
@@ -32,7 +34,6 @@ class MainActivity : AppCompatActivity() {
 
     val FRAME_PER_SECOND = 24
     val FRAME_DURATION = 1000 / FRAME_PER_SECOND
-    //    val PATH_DIRECTORY = Environment.getExternalStorageDirectory().absolutePath + "/cfaker/"
     val FILE_NAME_UI = "ui.png"
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -65,6 +66,21 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun chooseDirectory() {
+        AlertDialog.Builder(this)
+                .setTitle("Выбрать папку с помощью:")
+                .setPositiveButton(
+                        "Ручной ввод",
+                        { _, _ -> showInputPathDialog() }
+                )
+                .setNegativeButton(
+                        "Навигатор",
+                        { _, _ -> showNavigator() }
+                )
+                .show()
+
+    }
+
+    private fun showNavigator() {
         val builder = FileChooserDialog.Builder(
                 FileChooserDialog.ChooserType.DIRECTORY_CHOOSER,
                 FileChooserDialog.ChooserListener {
@@ -86,6 +102,28 @@ class MainActivity : AppCompatActivity() {
         builder.build().show(supportFragmentManager, "tag")
     }
 
+    private fun showInputPathDialog() {
+        val editText = EditText(this)
+        val padding = resources.getDimensionPixelOffset(R.dimen.padding_16)
+        editText.setPadding(padding, padding, padding, padding)
+        val savedPath = getSavedDirectory()
+
+        editText.setText(savedPath)
+        editText.setSelection(savedPath?.length ?: 0)
+
+        AlertDialog.Builder(this)
+                .setTitle("Укажите путь к папке с ui.png и файлами анимации. ")
+                .setView(editText)
+                .setPositiveButton(
+                        "OK",
+                        { dialogInterface, i ->
+                            dialogInterface.dismiss()
+                            saveDirectory(editText.text.toString())
+                        }
+                )
+                .show()
+    }
+
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent) {
         super.onActivityResult(requestCode, resultCode, data)
 
@@ -103,6 +141,11 @@ class MainActivity : AppCompatActivity() {
         }
 
         val dirName = getSavedDirectory()
+        if (dirName == null) {
+            chooseDirectory()
+            return
+        }
+
         val dir = File(dirName)
         if (!dir.exists()) {
             Toast.makeText(this, "Директории с названием $dirName не существует, проверьте правильность ввода данных.", Toast.LENGTH_SHORT).show()
