@@ -93,12 +93,14 @@ class MainActivity : Activity() {
                     dialog.dismiss()
                 }
 
-        adapter.addItems(
-                File(PATH_DIRECTORY)
-                        .listFiles()
-                        .filter { it.isDirectory }
-                        .map { it.name }
-        )
+        val files = File(PATH_DIRECTORY).listFiles()
+        if (files != null) {
+            adapter.addItems(
+                    files
+                            .filter { it.isDirectory }
+                            .map { it.name }
+            )
+        }
 
         recycler.adapter = adapter
         dialog.show()
