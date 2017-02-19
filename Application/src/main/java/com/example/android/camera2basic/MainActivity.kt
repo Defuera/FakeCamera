@@ -1,24 +1,19 @@
 package com.example.android.camera2basic
 
-import android.app.Activity
-import android.app.AlertDialog
 import android.content.Context
+import android.content.Intent
 import android.content.SharedPreferences
 import android.graphics.Bitmap
 import android.graphics.drawable.AnimationDrawable
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.os.Bundle
-import android.os.Environment
-import android.support.v7.widget.LinearLayoutManager
-import android.support.v7.widget.RecyclerView
+import android.support.v7.app.AppCompatActivity
 import android.util.Log
-import android.view.View
 import android.widget.ImageView
-import android.widget.TextView
 import android.widget.Toast
 import com.bumptech.glide.Glide
-import com.m039.el_adapter.ListItemAdapter
+import ir.sohreco.androidfilechooser.FileChooserDialog
 import rx.Single
 import rx.Subscription
 import rx.android.schedulers.AndroidSchedulers
@@ -26,7 +21,7 @@ import rx.schedulers.Schedulers
 import java.io.File
 
 
-class MainActivity : Activity() {
+class MainActivity : AppCompatActivity() {
 
     private lateinit var uiLayer: ImageView
     private lateinit var animationLayer: ImageView
@@ -37,7 +32,7 @@ class MainActivity : Activity() {
 
     val FRAME_PER_SECOND = 24
     val FRAME_DURATION = 1000 / FRAME_PER_SECOND
-    val PATH_DIRECTORY = Environment.getExternalStorageDirectory().absolutePath + "/cfaker/"
+    //    val PATH_DIRECTORY = Environment.getExternalStorageDirectory().absolutePath + "/cfaker/"
     val FILE_NAME_UI = "ui.png"
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -58,7 +53,7 @@ class MainActivity : Activity() {
 
         uiLayer.setOnLongClickListener {
             releaseResources()
-            showInputDirectoryNameDialog()
+            chooseDirectory()
             false
         }
 
@@ -69,41 +64,28 @@ class MainActivity : Activity() {
         displayUi()
     }
 
-    private fun showInputDirectoryNameDialog() {
-        val recycler = RecyclerView(this)
-        recycler.layoutManager = LinearLayoutManager(this)
-
-        val adapter = ListItemAdapter()
-
-        val dialog = AlertDialog.Builder(this)
-                .setTitle("Укажите путь к папке с ui.png и файлами анимации. ")
-                .setMessage("Папка должна быть помещена на внутренню память телефона по адреусу $PATH_DIRECTORY и не иметь в названии пробелов")
-                .setView(recycler)
-                .create()
-
-        adapter
-                .addViewCreator(
-                        String::class.java,
-                        { parent -> View.inflate(parent.context, R.layout.widget_item, null) as TextView }
-                )
-                .addViewBinder(TextView::setText)
-                .addOnItemViewClickListener { _, item ->
-                    saveDirectory(item)
+    private fun chooseDirectory() {
+        val builder = FileChooserDialog.Builder(
+                FileChooserDialog.ChooserType.DIRECTORY_CHOOSER,
+                FileChooserDialog.ChooserListener {
+                    dir ->
+                    Toast.makeText(this, "Директория выбрана $dir", Toast.LENGTH_SHORT).show()
+                    saveDirectory(dir)
                     displayUi()
-                    dialog.dismiss()
-                }
+                })
+                .setSelectDirectoryButtonText("OK")
 
-        val files = File(PATH_DIRECTORY).listFiles()
-        if (files != null) {
-            adapter.addItems(
-                    files
-                            .filter { it.isDirectory }
-                            .map { it.name }
-            )
+        val file = File(getSavedDirectory())
+        if (file.exists()) {
+            builder.setInitialDirectory(file)
         }
 
-        recycler.adapter = adapter
-        dialog.show()
+        builder.build().show(supportFragmentManager, "tag")
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent) {
+        super.onActivityResult(requestCode, resultCode, data)
+
     }
 
     private fun onUiLayerClicked() {
@@ -118,10 +100,10 @@ class MainActivity : Activity() {
         }
 
         val dirName = getSavedDirectory()
-        val dir = File(PATH_DIRECTORY + dirName)
+        val dir = File(dirName)
         if (!dir.exists()) {
             Toast.makeText(this, "Директории с названием $dirName не существует, проверьте правильность ввода данных.", Toast.LENGTH_SHORT).show()
-            showInputDirectoryNameDialog()
+            chooseDirectory()
         } else {
             animationLoading = true
             subscription = loadAnimation()
@@ -164,7 +146,7 @@ class MainActivity : Activity() {
     private fun createAnimationDrawableBlocking(): AnimationDrawable {
         val animationDrawable = AnimationDrawable()
 
-        val dirPath = PATH_DIRECTORY + getSavedDirectory()
+        val dirPath = getSavedDirectory()
         val dir = File(dirPath)
 
         dir
@@ -188,7 +170,7 @@ class MainActivity : Activity() {
     }
 
     private fun displayUi() {
-        val filePath = PATH_DIRECTORY + getSavedDirectory() + File.separator + FILE_NAME_UI
+        val filePath = getSavedDirectory() + File.separator + FILE_NAME_UI
         if (File(filePath).exists()) {
             Glide.with(this)
                     .load(filePath)
