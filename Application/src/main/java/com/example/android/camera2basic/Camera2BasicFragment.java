@@ -208,7 +208,7 @@ public class Camera2BasicFragment extends Fragment
             mCameraDevice = null;
             Activity activity = getActivity();
             if (null != activity) {
-                activity.finish();
+//                activity.finish();
             }
         }
 

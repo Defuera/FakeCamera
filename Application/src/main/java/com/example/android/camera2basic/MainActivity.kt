@@ -75,9 +75,12 @@ class MainActivity : AppCompatActivity() {
                 })
                 .setSelectDirectoryButtonText("OK")
 
-        val file = File(getSavedDirectory())
-        if (file.exists()) {
-            builder.setInitialDirectory(file)
+        val savedDirectory = getSavedDirectory()
+        if (savedDirectory != null) {
+            val file = File(savedDirectory)
+            if (file.exists()) {
+                builder.setInitialDirectory(file)
+            }
         }
 
         builder.build().show(supportFragmentManager, "tag")
