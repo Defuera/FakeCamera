@@ -4,37 +4,24 @@ import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
-import android.graphics.Bitmap
-import android.graphics.drawable.AnimationDrawable
-import android.graphics.drawable.BitmapDrawable
-import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
-import android.util.Log
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.Toast
 import com.bumptech.glide.Glide
 import ir.sohreco.androidfilechooser.FileChooserDialog
-import rx.Single
-import rx.Subscription
-import rx.android.schedulers.AndroidSchedulers
-import rx.schedulers.Schedulers
 import java.io.File
 
-
+/**
+ * https://docs.google.com/document/d/14I7E6EM0KH-JOwwWG3ZE3iBC9KOa7GmiuFZ-uYePQdw/edit#heading=h.z4v2w9ra93i0
+ */
 class MainActivity : AppCompatActivity() {
 
     private lateinit var uiLayer: ImageView
-    private lateinit var animationLayer: ImageView
     private lateinit var prefs: SharedPreferences
 
-    private var animationLoading: Boolean = false
-    private var subscription: Subscription? = null
-
-    val FRAME_PER_SECOND = 24
-    val FRAME_DURATION = 1000 / FRAME_PER_SECOND
-    val FILE_NAME_UI = "ui.png"
+    private var imageIndex: Int = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -49,11 +36,8 @@ class MainActivity : AppCompatActivity() {
         }
 
         uiLayer = findViewById(R.id.ui_layer) as ImageView
-        animationLayer = findViewById(R.id.animation_layer) as ImageView
-
 
         uiLayer.setOnLongClickListener {
-            releaseResources()
             chooseDirectory()
             false
         }
@@ -130,101 +114,47 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun onUiLayerClicked() {
-        if (animationLoading) {
-            Toast.makeText(this, "Пожалуйста подождите, анимация загружается", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        if (animationLayer.background != null) {
-            releaseResources()
-            return
-        }
-
         val dirName = getSavedDirectory()
         if (dirName == null) {
             chooseDirectory()
             return
         }
 
-        val dir = File(dirName)
-        if (!dir.exists()) {
-            Toast.makeText(this, "Директории с названием $dirName не существует, проверьте правильность ввода данных.", Toast.LENGTH_SHORT).show()
-            chooseDirectory()
-        } else {
-            animationLoading = true
-            subscription = loadAnimation()
-                    .subscribe(
-                            {
-                                animationDrawable ->
-                                animationLoading = false
-                                animationLayer.background = animationDrawable
-                                animationDrawable.isOneShot = false
-                                animationDrawable.start()
-                            },
-                            {
-                                t ->
-                                animationLoading = false
-                                Toast.makeText(this, t.localizedMessage, Toast.LENGTH_SHORT).show()
-                            }
-                    )
-        }
-
+        showNextImage()
     }
 
-    private fun releaseResources() {
-        subscription?.unsubscribe()
-        subscription = null
-
-        val background: Drawable? = animationLayer.background
-        val animationDrawable = if (background != null) background as AnimationDrawable else null
-        animationDrawable?.stop()
-        animationLayer.background = null
-    }
-
-    @Synchronized
-    private fun loadAnimation(): Single<AnimationDrawable> {
-        return Single
-                .fromCallable { createAnimationDrawableBlocking() }
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-    }
-
-    private fun createAnimationDrawableBlocking(): AnimationDrawable {
-        val animationDrawable = AnimationDrawable()
-
-        val dirPath = getSavedDirectory()
-        val dir = File(dirPath)
-
-        dir
-                .listFiles()
-                .filter {
-                    Log.i("DEnsText", it.absolutePath)
-                    it.name != FILE_NAME_UI && it.extension == "png"
-                }
-                .forEach {
-                    val bm: Bitmap = Glide.with(this)
-                            .load(it.absolutePath)
-                            .asBitmap()
-                            .into(com.bumptech.glide.request.target.Target.SIZE_ORIGINAL, com.bumptech.glide.request.target.Target.SIZE_ORIGINAL)
-                            .get()
-
-                    val bitmapDrawable = BitmapDrawable(resources, bm)
-                    animationDrawable.addFrame(bitmapDrawable, FRAME_DURATION)
-                }
-
-        return animationDrawable
+    private fun showNextImage() {
+        imageIndex++
+        displayUi()
     }
 
     private fun displayUi() {
-        val filePath = getSavedDirectory() + File.separator + FILE_NAME_UI
-        if (File(filePath).exists()) {
-            Glide.with(this)
-                    .load(filePath)
-                    .into(uiLayer)
-        } else {
+        val dirPath = getSavedDirectory()
+        val dir = File(dirPath)
+        if (!dir.exists() || !dir.isDirectory) {
             uiLayer.setImageDrawable(null)
-            Toast.makeText(this, "ui.png not found in ${getSavedDirectory()}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Директории с названием ${dir.name} не существует, проверьте правильность ввода данных.", Toast.LENGTH_SHORT).show()
+            chooseDirectory()
+            return
         }
+
+        val listFiles = dir.listFiles()
+        if (listFiles == null || listFiles.filter { it.extension.contains("png") }.isEmpty()) {
+            uiLayer.setImageDrawable(null)
+            Toast.makeText(this, "*.png not found in ${getSavedDirectory()}", Toast.LENGTH_SHORT).show()
+        }
+
+        val imageFilesList = listFiles.filter { it.extension.contains("png") }
+        if (imageIndex > imageFilesList.lastIndex) {
+            imageIndex = 0
+        }
+
+        val imagePath = imageFilesList[imageIndex].absolutePath
+
+        Glide.with(this)
+                .load(imagePath)
+                .crossFade(0)
+                .into(uiLayer)
     }
 
     private fun getSavedDirectory(): String? {
@@ -235,12 +165,4 @@ class MainActivity : AppCompatActivity() {
         prefs.edit().putString("path", path).apply()
     }
 
-
-    fun screenWidth(context: Context): Int {
-        return context.resources.displayMetrics.widthPixels
-    }
-
-    fun screenHeigh(context: Context): Int {
-        return context.resources.displayMetrics.heightPixels
-    }
 }

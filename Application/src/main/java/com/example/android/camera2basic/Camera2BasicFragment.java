@@ -207,9 +207,7 @@ public class Camera2BasicFragment extends Fragment
             cameraDevice.close();
             mCameraDevice = null;
             Activity activity = getActivity();
-            if (null != activity) {
-//                activity.finish();
-            }
+            if (null != activity) {}
         }
 
     };
@@ -972,7 +970,6 @@ public class Camera2BasicFragment extends Fragment
                     .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialogInterface, int i) {
-                            activity.finish();
                         }
                     })
                     .create();
@@ -1002,10 +999,6 @@ public class Camera2BasicFragment extends Fragment
                             new DialogInterface.OnClickListener() {
                                 @Override
                                 public void onClick(DialogInterface dialog, int which) {
-                                    Activity activity = parent.getActivity();
-                                    if (activity != null) {
-                                        activity.finish();
-                                    }
                                 }
                             })
                     .create();
