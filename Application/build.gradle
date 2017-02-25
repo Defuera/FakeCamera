@@ -1,5 +1,6 @@
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
+apply plugin: 'io.fabric'
 
 android {
     compileSdkVersion 25
@@ -43,7 +44,12 @@ dependencies {
 
     compile 'ir.sohreco.androidfilechooser:android-file-chooser:1.2'
 
+    compile('com.crashlytics.sdk.android:crashlytics:2.6.6@aar') {
+        transitive = true;
+    }
+
 }
 repositories {
     mavenCentral()
+    maven { url 'https://maven.fabric.io/public' }
 }

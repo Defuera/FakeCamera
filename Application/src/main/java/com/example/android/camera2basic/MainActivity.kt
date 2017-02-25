@@ -10,6 +10,8 @@ import android.widget.EditText
 import android.widget.ImageView
 import android.widget.Toast
 import com.bumptech.glide.Glide
+import com.crashlytics.android.Crashlytics
+import io.fabric.sdk.android.Fabric
 import ir.sohreco.androidfilechooser.FileChooserDialog
 import java.io.File
 
@@ -24,6 +26,8 @@ class MainActivity : AppCompatActivity() {
     private var imageIndex: Int = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        Fabric.with(this, Crashlytics())
+
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_camera)
 
