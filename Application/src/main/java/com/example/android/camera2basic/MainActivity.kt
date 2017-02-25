@@ -2,15 +2,18 @@ package com.example.android.camera2basic
 
 import android.app.AlertDialog
 import android.content.Context
-import android.content.Intent
 import android.content.SharedPreferences
+import android.graphics.Bitmap
 import android.os.Bundle
 import android.os.Environment
+import android.os.Handler
 import android.support.v7.app.AppCompatActivity
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.Toast
 import com.bumptech.glide.Glide
+import com.bumptech.glide.request.animation.GlideAnimation
+import com.bumptech.glide.request.target.SimpleTarget
 import com.crashlytics.android.Crashlytics
 import io.fabric.sdk.android.Fabric
 import ir.sohreco.androidfilechooser.FileChooserDialog
@@ -23,6 +26,8 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var uiLayer: ImageView
     private lateinit var prefs: SharedPreferences
+
+    private val listImages = ArrayList<Bitmap>()
 
     private var imageIndex: Int = 0
 
@@ -48,11 +53,14 @@ class MainActivity : AppCompatActivity() {
         }
 
         uiLayer.setOnClickListener {
-            onUiLayerClicked()
+            showNextImage()
         }
 
-        displayUi()
+        preloadAndDisplayImages()
     }
+
+
+    //region Directory chooser
 
     private fun chooseDirectory() {
         AlertDialog.Builder(this)
@@ -74,9 +82,7 @@ class MainActivity : AppCompatActivity() {
                 FileChooserDialog.ChooserType.DIRECTORY_CHOOSER,
                 FileChooserDialog.ChooserListener {
                     dir ->
-                    Toast.makeText(this, "Директория выбрана $dir", Toast.LENGTH_SHORT).show()
-                    saveDirectory(dir)
-                    displayUi()
+                    onChooseDirectory(dir)
                 })
                 .setSelectDirectoryButtonText("OK")
 
@@ -103,58 +109,89 @@ class MainActivity : AppCompatActivity() {
                 .setView(editText)
                 .setPositiveButton(
                         "OK",
-                        { dialogInterface, i ->
+                        { dialogInterface, _ ->
                             dialogInterface.dismiss()
-                            saveDirectory(editText.text.toString())
+                            onChooseDirectory(editText.text.toString())
                         }
                 )
                 .show()
     }
 
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent) {
-        super.onActivityResult(requestCode, resultCode, data)
-
+    private fun onChooseDirectory(dir: String) {
+        Toast.makeText(this, "Директория выбрана $dir", Toast.LENGTH_SHORT).show()
+        saveDirectory(dir)
+        preloadAndDisplayImages()
     }
 
-    private fun onUiLayerClicked() {
-        showNextImage()
-    }
+    //endregion
 
-    private fun showNextImage() {
-        imageIndex++
-        displayUi()
-    }
 
-    private fun displayUi() {
+    //region Display images
+
+    private fun preloadAndDisplayImages() {
+        listImages.clear()
+        uiLayer.setImageBitmap(null)
+
         val dirPath = getSavedDirectory()
 
         val dir = File(dirPath)
         if (!dir.exists() || !dir.isDirectory) {
-            uiLayer.setImageDrawable(null)
-            Toast.makeText(this, "Директории с названием ${dir.name} не существует, проверьте правильность ввода данных.", Toast.LENGTH_SHORT).show()
-            chooseDirectory()
             return
         }
 
         val listFiles = dir.listFiles()
         if (listFiles == null || listFiles.filter { it.extension.contains("png") }.isEmpty()) {
-            uiLayer.setImageDrawable(null)
-            Toast.makeText(this, "*.png not found in ${getSavedDirectory()}", Toast.LENGTH_SHORT).show()
             return
         }
 
-        val imageFilesList = listFiles.filter { it.extension.contains("png") }
-        if (imageIndex > imageFilesList.lastIndex) {
+        listFiles
+                .filter { it.extension.contains("png") }
+                .forEach {
+
+                    Glide.with(this)
+                            .load(it)
+                            .asBitmap()
+                            .into(
+                                    object : SimpleTarget<Bitmap>() {
+                                        override fun onResourceReady(bmp: Bitmap, glideAnimation: GlideAnimation<in Bitmap>?) {
+                                            listImages.add(bmp)
+                                        }
+
+                                    }
+                            )
+
+                }
+
+        Handler().postDelayed({
+            if (listImages.isNotEmpty()) {
+                displayUi()
+            }
+        },
+                600)
+
+    }
+
+    private fun showNextImage() {
+        if (listImages.isEmpty()) {
+            chooseDirectory()
+        } else {
+            imageIndex++
+            displayUi()
+        }
+    }
+
+    private fun displayUi() {
+        if (imageIndex > listImages.lastIndex) {
             imageIndex = 0
         }
 
-        val imagePath = imageFilesList[imageIndex].absolutePath
-
-        Glide.with(this)
-                .load(imagePath)
-                .crossFade(0)
-                .into(uiLayer)
+        uiLayer.setImageBitmap(listImages[imageIndex])
     }
+
+    //endregion
+
+
+    //region data storage
 
     private fun getSavedDirectory(): String? {
         return prefs.getString("path", Environment.getExternalStorageDirectory().absolutePath + File.separator)
@@ -163,5 +200,7 @@ class MainActivity : AppCompatActivity() {
     private fun saveDirectory(path: String) {
         prefs.edit().putString("path", path).apply()
     }
+
+    //endregion
 
 }
