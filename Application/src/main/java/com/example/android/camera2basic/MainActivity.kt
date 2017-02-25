@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Bundle
+import android.os.Environment
 import android.support.v7.app.AppCompatActivity
 import android.widget.EditText
 import android.widget.ImageView
@@ -80,11 +81,9 @@ class MainActivity : AppCompatActivity() {
                 .setSelectDirectoryButtonText("OK")
 
         val savedDirectory = getSavedDirectory()
-        if (savedDirectory != null) {
-            val file = File(savedDirectory)
-            if (file.exists()) {
-                builder.setInitialDirectory(file)
-            }
+        val directory = File(savedDirectory)
+        if (directory.exists()) {
+            builder.setInitialDirectory(directory)
         }
 
         builder.build().show(supportFragmentManager, "tag")
@@ -118,12 +117,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun onUiLayerClicked() {
-        val dirName = getSavedDirectory()
-        if (dirName == null) {
-            chooseDirectory()
-            return
-        }
-
         showNextImage()
     }
 
@@ -134,6 +127,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun displayUi() {
         val dirPath = getSavedDirectory()
+
         val dir = File(dirPath)
         if (!dir.exists() || !dir.isDirectory) {
             uiLayer.setImageDrawable(null)
@@ -146,6 +140,7 @@ class MainActivity : AppCompatActivity() {
         if (listFiles == null || listFiles.filter { it.extension.contains("png") }.isEmpty()) {
             uiLayer.setImageDrawable(null)
             Toast.makeText(this, "*.png not found in ${getSavedDirectory()}", Toast.LENGTH_SHORT).show()
+            return
         }
 
         val imageFilesList = listFiles.filter { it.extension.contains("png") }
@@ -162,7 +157,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun getSavedDirectory(): String? {
-        return prefs.getString("path", null)
+        return prefs.getString("path", Environment.getExternalStorageDirectory().absolutePath + File.separator)
     }
 
     private fun saveDirectory(path: String) {
