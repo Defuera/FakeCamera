@@ -8,6 +8,7 @@ import android.os.Bundle
 import android.os.Environment
 import android.os.Handler
 import android.support.v7.app.AppCompatActivity
+import android.view.View
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.Toast
@@ -19,11 +20,13 @@ import io.fabric.sdk.android.Fabric
 import ir.sohreco.androidfilechooser.FileChooserDialog
 import java.io.File
 
+
 /**
  * https://docs.google.com/document/d/14I7E6EM0KH-JOwwWG3ZE3iBC9KOa7GmiuFZ-uYePQdw/edit#heading=h.z4v2w9ra93i0
  */
 class MainActivity : AppCompatActivity() {
 
+    val DEFAULT_DIRECTORY = Environment.getExternalStorageDirectory().absolutePath + File.separator
     private lateinit var uiLayer: ImageView
     private lateinit var prefs: SharedPreferences
 
@@ -78,21 +81,27 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showNavigator() {
-        val builder = FileChooserDialog.Builder(
-                FileChooserDialog.ChooserType.DIRECTORY_CHOOSER,
-                FileChooserDialog.ChooserListener {
-                    dir ->
-                    onChooseDirectory(dir)
-                })
-                .setSelectDirectoryButtonText("OK")
+        var dirPath: String? = null
+        try {
 
-        val savedDirectory = getSavedDirectory()
-        val directory = File(savedDirectory)
-        if (directory.exists()) {
-            builder.setInitialDirectory(directory)
+            val builder = FileChooserDialog.Builder(
+                    FileChooserDialog.ChooserType.DIRECTORY_CHOOSER,
+                    FileChooserDialog.ChooserListener {
+                        dir ->
+                        onChooseDirectory(dir)
+                    })
+                    .setSelectDirectoryButtonText("OK")
+
+            dirPath = getSavedDirectory()
+            val directory = File(dirPath)
+            if (directory.exists()) {
+                builder.setInitialDirectory(directory)
+            }
+
+            builder.build().show(supportFragmentManager, "tag")
+        } catch (e: Exception) {
+            Toast.makeText(this, "Директория $dirPath не существует ", Toast.LENGTH_SHORT).show()
         }
-
-        builder.build().show(supportFragmentManager, "tag")
     }
 
     private fun showInputPathDialog() {
@@ -194,7 +203,7 @@ class MainActivity : AppCompatActivity() {
     //region data storage
 
     private fun getSavedDirectory(): String? {
-        return prefs.getString("path", Environment.getExternalStorageDirectory().absolutePath + File.separator)
+        return prefs.getString("path", DEFAULT_DIRECTORY)
     }
 
     private fun saveDirectory(path: String) {
@@ -203,4 +212,17 @@ class MainActivity : AppCompatActivity() {
 
     //endregion
 
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) {
+            window.decorView.setSystemUiVisibility(
+                    View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                            or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                            or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                            or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                            or View.SYSTEM_UI_FLAG_FULLSCREEN
+                            or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+            )
+        }
+    }
 }
